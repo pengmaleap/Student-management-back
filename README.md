@@ -28,10 +28,10 @@ cp .env.example .env
 ```
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=student_management
+DB_NAME=student_ms_db
 DB_USER=postgres
 DB_PASSWORD=your_password
-SERVER_PORT=5000
+SERVER_PORT=5001
 CORS_ORIGIN=http://localhost:3000
 ```
 
@@ -40,21 +40,13 @@ CORS_ORIGIN=http://localhost:3000
 1. Create the PostgreSQL database:
 
 ```sql
-CREATE DATABASE student_management;
+CREATE DATABASE student_ms_db;
 ```
 
-2. Create the students table:
+2. Apply the schema and development seed data:
 
-```sql
-CREATE TABLE students (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) UNIQUE,
-  phone VARCHAR(20),
-  address TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+```bash
+psql -d student_ms_db -f src/config/init-db.sql
 ```
 
 ## Running the Application
@@ -71,7 +63,7 @@ npm run dev
 npm start
 ```
 
-The server will start on `http://localhost:5000`
+The server will start on `http://localhost:5001`
 
 ## API Endpoints
 
@@ -83,35 +75,50 @@ The server will start on `http://localhost:5000`
 - **PUT** `/api/students/:id` - Update student
 - **DELETE** `/api/students/:id` - Delete student
 
+### Dashboard and attendance
+
+- **GET** `/api/dashboard?date=YYYY-MM-DD` - Dashboard totals and dated data
+- **GET** `/api/attendance?date=YYYY-MM-DD` - Attendance list
+- **PUT** `/api/attendance` - Create or update a student's attendance
+- **GET** `/api/schedules?date=YYYY-MM-DD` - Dated class schedule
+
+### Notes
+
+- **GET** `/api/notes` - List and search notes
+- **POST** `/api/notes` - Create a note
+- **PUT** `/api/notes/:id` - Update a note
+- **DELETE** `/api/notes/:id` - Delete a note
+
 ### Health Check
 
 - **GET** `/api/health` - Check if backend is running
 
 ## Frontend Connection
 
-Update your frontend `.env` to point to this backend:
+Override the API URL when needed:
 
-```
-REACT_APP_API_URL=http://localhost:5000/api
+```bash
+flutter run --dart-define=API_BASE_URL=http://localhost:5001/api
 ```
 
-Then use it in your frontend:
-
-```javascript
-const response = await fetch(`${process.env.REACT_APP_API_URL}/students`);
-```
+`ApiService` uses `http://localhost:5001/api` by default. Android emulators use
+`http://10.0.2.2:5001/api` automatically. For a physical device, pass the
+development computer's LAN address with `--dart-define=API_BASE_URL=...`.
 
 ## Project Structure
 
 ```
 src/
 ├── config/
-│   └── database.js       # PostgreSQL connection
+│   ├── database.js       # PostgreSQL connection
+│   └── init-db.sql       # Schema and development seed
 ├── controllers/
-│   └── studentController.js  # Business logic
+│   ├── managementController.js
+│   └── studentController.js
 ├── routes/
-│   └── studentRoutes.js   # API routes
-└── server.js             # Main server file
+│   ├── managementRoutes.js
+│   └── studentRoutes.js
+└── server.js
 ```
 
 ## Environment Variables
