@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const pool = require("./config/database");
+const authenticate = require("./middleware/auth");
+const { ensureDefaultAdmin } = require("./controllers/authController");
 require("dotenv").config();
 
 const app = express();
@@ -27,8 +29,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
-app.use("/api/students", require("./routes/studentRoutes"));
-app.use("/api", require("./routes/managementRoutes"));
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/students", authenticate, require("./routes/studentRoutes"));
+app.use("/api", authenticate, require("./routes/managementRoutes"));
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
@@ -46,6 +49,9 @@ const startServer = async () => {
   try {
     const result = await pool.query("SELECT current_database() AS database");
     console.log(`Connected to PostgreSQL database: ${result.rows[0].database}`);
+    if (await ensureDefaultAdmin()) {
+      console.log("Created development default user: Admin");
+    }
 
     const server = app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);

@@ -1,3 +1,29 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(80) NOT NULL,
+  email VARCHAR(255),
+  full_name VARCHAR(255),
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(30) NOT NULL DEFAULT 'teacher',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower
+  ON users (LOWER(username));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower
+  ON users (LOWER(email)) WHERE email IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS classes (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  code VARCHAR(30) NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS students (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -6,6 +32,7 @@ CREATE TABLE IF NOT EXISTS students (
   address TEXT,
   gender VARCHAR(10) NOT NULL DEFAULT 'other',
   grade VARCHAR(50) NOT NULL DEFAULT 'Unassigned',
+  class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL,
   student_code VARCHAR(30) UNIQUE,
   avatar_url TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -16,9 +43,20 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS gender VARCHAR(10) NOT NULL DEFAUL
 ALTER TABLE students ADD COLUMN IF NOT EXISTS grade VARCHAR(50) NOT NULL DEFAULT 'Unassigned';
 ALTER TABLE students ADD COLUMN IF NOT EXISTS student_code VARCHAR(30) UNIQUE;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_students_email ON students(email);
 CREATE INDEX IF NOT EXISTS idx_students_gender ON students(gender);
+CREATE INDEX IF NOT EXISTS idx_students_class ON students(class_id);
+
+INSERT INTO classes (name, code, description) VALUES
+('Grade 9A', 'G9A', 'Grade 9, section A'),
+('Grade 9B', 'G9B', 'Grade 9, section B'),
+('Grade 10A', 'G10A', 'Grade 10, section A')
+ON CONFLICT (name) DO UPDATE SET
+  code = EXCLUDED.code,
+  description = EXCLUDED.description,
+  updated_at = NOW();
 
 CREATE TABLE IF NOT EXISTS attendance (
   id SERIAL PRIMARY KEY,
@@ -41,6 +79,7 @@ CREATE TABLE IF NOT EXISTS schedules (
   schedule_date DATE NOT NULL,
   title VARCHAR(255) NOT NULL,
   grade VARCHAR(50),
+  class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL,
   location VARCHAR(255),
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
@@ -50,12 +89,33 @@ CREATE TABLE IF NOT EXISTS schedules (
 );
 
 CREATE INDEX IF NOT EXISTS idx_schedules_date ON schedules(schedule_date);
+ALTER TABLE schedules ADD COLUMN IF NOT EXISTS class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_schedules_class ON schedules(class_id);
+
+CREATE TABLE IF NOT EXISTS note_types (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(80) NOT NULL UNIQUE,
+  code VARCHAR(30) NOT NULL UNIQUE,
+  default_color VARCHAR(10) NOT NULL DEFAULT '#FFF1B8',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO note_types (name, code, default_color) VALUES
+('General', 'GENERAL', '#FFF1B8'),
+('Important', 'IMPORTANT', '#C9F7DF'),
+('Lecture notes', 'LECTURE', '#D9E8FF'),
+('To-do', 'TODO', '#FFD9EA'),
+('Homework', 'HOMEWORK', '#E8D9FF')
+ON CONFLICT (name) DO UPDATE SET
+  code = EXCLUDED.code,
+  default_color = EXCLUDED.default_color;
 
 CREATE TABLE IF NOT EXISTS notes (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   content TEXT NOT NULL DEFAULT '',
   category VARCHAR(50) NOT NULL DEFAULT 'General',
+  note_type_id INTEGER REFERENCES note_types(id) ON DELETE SET NULL,
   color VARCHAR(10) NOT NULL DEFAULT '#FFF1B8',
   note_date DATE NOT NULL DEFAULT CURRENT_DATE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -63,6 +123,8 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_notes_date ON notes(note_date DESC);
+ALTER TABLE notes ADD COLUMN IF NOT EXISTS note_type_id INTEGER REFERENCES note_types(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_notes_type ON notes(note_type_id);
 
 INSERT INTO students (name, email, phone, address, gender, grade, student_code, avatar_url) VALUES
 ('John Doe', 'john@example.com', '555-1234', '123 Main St', 'male', 'Grade 9A', 'STU0001', 'https://i.pravatar.cc/160?img=12'),
@@ -76,6 +138,12 @@ ON CONFLICT (email) DO UPDATE SET
   grade = EXCLUDED.grade,
   student_code = EXCLUDED.student_code,
   avatar_url = EXCLUDED.avatar_url;
+
+UPDATE students s
+SET class_id = c.id
+FROM classes c
+WHERE s.grade = c.name
+  AND s.class_id IS DISTINCT FROM c.id;
 
 INSERT INTO attendance (student_id, attendance_date, status, check_in, check_out, note)
 SELECT id, CURRENT_DATE,
@@ -106,6 +174,12 @@ INSERT INTO schedules (schedule_date, title, grade, location, start_time, end_ti
 (CURRENT_DATE, 'Science Lab', 'Grade 10A', 'Laboratory', '11:00', '12:00', '#FFB020')
 ON CONFLICT (schedule_date, title, start_time) DO NOTHING;
 
+UPDATE schedules s
+SET class_id = c.id
+FROM classes c
+WHERE s.grade = c.name
+  AND s.class_id IS DISTINCT FROM c.id;
+
 INSERT INTO notes (title, content, category, color, note_date)
 SELECT * FROM (VALUES
   ('Parent Meeting', 'Discuss quarterly progress with parents of Grade 9A. Focus on Math and Science scores.', 'Important', '#FFF1B8', CURRENT_DATE),
@@ -113,3 +187,9 @@ SELECT * FROM (VALUES
   ('Lesson Plan', 'Update lesson plan for next week. Include interactive quizzes and group activities.', 'Lecture notes', '#D9E8FF', CURRENT_DATE + 2)
 ) AS seed(title, content, category, color, note_date)
 WHERE NOT EXISTS (SELECT 1 FROM notes);
+
+UPDATE notes n
+SET note_type_id = nt.id
+FROM note_types nt
+WHERE LOWER(n.category) = LOWER(nt.name)
+  AND n.note_type_id IS DISTINCT FROM nt.id;

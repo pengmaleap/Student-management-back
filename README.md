@@ -32,6 +32,7 @@ DB_NAME=student_ms_db
 DB_USER=postgres
 DB_PASSWORD=your_password
 SERVER_PORT=5001
+JWT_SECRET=replace_with_a_long_random_secret
 CORS_ORIGIN=http://localhost:3000
 ```
 
@@ -65,7 +66,19 @@ npm start
 
 The server will start on `http://localhost:5001`
 
+When the users table is empty in development, the backend creates a default
+administrator account with username `Admin` and password `123`. Change this
+password before using the project outside local development.
+
 ## API Endpoints
+
+### Authentication
+
+- **POST** `/api/auth/register` - Create a teacher account
+- **POST** `/api/auth/login` - Log in and receive a JWT
+- **GET** `/api/auth/me` - Validate an authenticated session
+
+All student-management endpoints require `Authorization: Bearer <token>`.
 
 ### Students
 
@@ -77,6 +90,7 @@ The server will start on `http://localhost:5001`
 
 ### Dashboard and attendance
 
+- **GET** `/api/classes` - List classes and student counts
 - **GET** `/api/dashboard?date=YYYY-MM-DD` - Dashboard totals and dated data
 - **GET** `/api/attendance?date=YYYY-MM-DD` - Attendance list
 - **PUT** `/api/attendance` - Create or update a student's attendance
@@ -84,6 +98,7 @@ The server will start on `http://localhost:5001`
 
 ### Notes
 
+- **GET** `/api/note-types` - List available note types
 - **GET** `/api/notes` - List and search notes
 - **POST** `/api/notes` - Create a note
 - **PUT** `/api/notes/:id` - Update a note
