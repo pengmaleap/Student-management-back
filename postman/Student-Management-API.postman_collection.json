@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Student Management API",
-    "description": "Postman requests and mock data for every API endpoint. Run Create Student before Update/Delete Student, and Create Note before Update/Delete Note.",
+    "description": "Postman requests for the authenticated Student Management API. Run Login as Admin first to save the JWT automatically. Run Create Student before Update/Delete Student, and Create Note before Update/Delete Note.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -9,9 +9,64 @@
     { "key": "studentId", "value": "1" },
     { "key": "createdStudentId", "value": "" },
     { "key": "noteId", "value": "" },
-    { "key": "testDate", "value": "2026-06-22" }
+    { "key": "testDate", "value": "2026-06-22" },
+    { "key": "classId", "value": "1" },
+    { "key": "noteTypeId", "value": "1" },
+    { "key": "username", "value": "Admin" },
+    { "key": "password", "value": "123" },
+    { "key": "token", "value": "" }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
   "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Register Teacher",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"teacher.demo\",\n  \"password\": \"teacher123\",\n  \"email\": \"teacher.demo@example.com\",\n  \"fullName\": \"Demo Teacher\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" }
+        }
+      ]
+    },
     {
       "name": "Health",
       "item": [
@@ -32,7 +87,7 @@
           "name": "Search Students",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/students?search=STU&gender=female"
+            "url": "{{baseUrl}}/students?search=STU&gender=female&classId={{classId}}"
           }
         },
         {
@@ -57,7 +112,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Sokha Chan\",\n  \"email\": \"sokha.chan@example.com\",\n  \"phone\": \"012-345-678\",\n  \"address\": \"Phnom Penh, Cambodia\",\n  \"gender\": \"female\",\n  \"grade\": \"Grade 10A\",\n  \"studentCode\": \"STU1001\",\n  \"avatarUrl\": \"https://i.pravatar.cc/160?img=45\"\n}"
+              "raw": "{\n  \"name\": \"Sokha Chan\",\n  \"email\": \"sokha.chan@example.com\",\n  \"phone\": \"012-345-678\",\n  \"address\": \"Phnom Penh, Cambodia\",\n  \"gender\": \"female\",\n  \"classId\": {{classId}},\n  \"studentCode\": \"STU1001\",\n  \"avatarUrl\": \"https://i.pravatar.cc/160?img=45\"\n}"
             },
             "url": "{{baseUrl}}/students"
           }
@@ -69,7 +124,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Sokha Chan Updated\",\n  \"email\": \"sokha.chan.updated@example.com\",\n  \"phone\": \"012-999-888\",\n  \"address\": \"Kandal, Cambodia\",\n  \"gender\": \"female\",\n  \"grade\": \"Grade 10B\",\n  \"studentCode\": \"STU1001\",\n  \"avatarUrl\": \"https://i.pravatar.cc/160?img=45\"\n}"
+              "raw": "{\n  \"name\": \"Sokha Chan Updated\",\n  \"email\": \"sokha.chan.updated@example.com\",\n  \"phone\": \"012-999-888\",\n  \"address\": \"Kandal, Cambodia\",\n  \"gender\": \"female\",\n  \"classId\": {{classId}},\n  \"studentCode\": \"STU1001\",\n  \"avatarUrl\": \"https://i.pravatar.cc/160?img=45\"\n}"
             },
             "url": "{{baseUrl}}/students/{{createdStudentId}}"
           }
@@ -81,17 +136,42 @@
       ]
     },
     {
+      "name": "Classes",
+      "item": [
+        {
+          "name": "Get Classes",
+          "request": { "method": "GET", "url": "{{baseUrl}}/classes" }
+        }
+      ]
+    },
+    {
       "name": "Dashboard",
       "item": [
         {
           "name": "Get Dashboard",
           "request": { "method": "GET", "url": "{{baseUrl}}/dashboard?date={{testDate}}" }
+        },
+        {
+          "name": "Get Dashboard By Class",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard?date={{testDate}}&classId={{classId}}" }
         }
       ]
     },
     {
       "name": "Attendance",
       "item": [
+        {
+          "name": "Initialize Daily Data",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"{{testDate}}\"\n}"
+            },
+            "url": "{{baseUrl}}/daily/initialize"
+          }
+        },
         {
           "name": "Get Attendance",
           "request": { "method": "GET", "url": "{{baseUrl}}/attendance?date={{testDate}}" }
@@ -100,7 +180,7 @@
           "name": "Filter Attendance",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/attendance?date={{testDate}}&status=present&search=STU"
+            "url": "{{baseUrl}}/attendance?date={{testDate}}&status=present&search=STU&classId={{classId}}"
           }
         },
         {
@@ -123,12 +203,20 @@
         {
           "name": "Get Schedules",
           "request": { "method": "GET", "url": "{{baseUrl}}/schedules?date={{testDate}}" }
+        },
+        {
+          "name": "Get Schedules By Class",
+          "request": { "method": "GET", "url": "{{baseUrl}}/schedules?date={{testDate}}&classId={{classId}}" }
         }
       ]
     },
     {
       "name": "Notes",
       "item": [
+        {
+          "name": "Get Note Types",
+          "request": { "method": "GET", "url": "{{baseUrl}}/note-types" }
+        },
         {
           "name": "Get All Notes",
           "request": { "method": "GET", "url": "{{baseUrl}}/notes" }
@@ -155,7 +243,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Science project deadline\",\n  \"content\": \"Remind Grade 10A students to submit their projects by Friday.\",\n  \"category\": \"Reminder\",\n  \"color\": \"#D9E8FF\",\n  \"noteDate\": \"{{testDate}}\"\n}"
+              "raw": "{\n  \"title\": \"Science project deadline\",\n  \"content\": \"Remind students to submit their projects by Friday.\",\n  \"noteTypeId\": {{noteTypeId}},\n  \"color\": \"#D9E8FF\",\n  \"noteDate\": \"{{testDate}}\"\n}"
             },
             "url": "{{baseUrl}}/notes"
           }
@@ -167,7 +255,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Updated science project deadline\",\n  \"content\": \"The submission deadline has moved to next Monday.\",\n  \"category\": \"Important\",\n  \"color\": \"#FFF1B8\",\n  \"noteDate\": \"{{testDate}}\"\n}"
+              "raw": "{\n  \"title\": \"Updated science project deadline\",\n  \"content\": \"The submission deadline has moved to next Monday.\",\n  \"noteTypeId\": {{noteTypeId}},\n  \"color\": \"#FFF1B8\",\n  \"noteDate\": \"{{testDate}}\"\n}"
             },
             "url": "{{baseUrl}}/notes/{{noteId}}"
           }
