@@ -1,0 +1,182 @@
+{
+  "info": {
+    "name": "Student Management API",
+    "description": "Postman requests and mock data for every API endpoint. Run Create Student before Update/Delete Student, and Create Note before Update/Delete Note.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001/api" },
+    { "key": "studentId", "value": "1" },
+    { "key": "createdStudentId", "value": "" },
+    { "key": "noteId", "value": "" },
+    { "key": "testDate", "value": "2026-06-22" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "Get All Students",
+          "request": { "method": "GET", "url": "{{baseUrl}}/students" }
+        },
+        {
+          "name": "Search Students",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/students?search=STU&gender=female"
+          }
+        },
+        {
+          "name": "Get Student By ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/students/{{studentId}}" }
+        },
+        {
+          "name": "Create Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Student created', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('createdStudentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sokha Chan\",\n  \"email\": \"sokha.chan@example.com\",\n  \"phone\": \"012-345-678\",\n  \"address\": \"Phnom Penh, Cambodia\",\n  \"gender\": \"female\",\n  \"grade\": \"Grade 10A\",\n  \"studentCode\": \"STU1001\",\n  \"avatarUrl\": \"https://i.pravatar.cc/160?img=45\"\n}"
+            },
+            "url": "{{baseUrl}}/students"
+          }
+        },
+        {
+          "name": "Update Created Student",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sokha Chan Updated\",\n  \"email\": \"sokha.chan.updated@example.com\",\n  \"phone\": \"012-999-888\",\n  \"address\": \"Kandal, Cambodia\",\n  \"gender\": \"female\",\n  \"grade\": \"Grade 10B\",\n  \"studentCode\": \"STU1001\",\n  \"avatarUrl\": \"https://i.pravatar.cc/160?img=45\"\n}"
+            },
+            "url": "{{baseUrl}}/students/{{createdStudentId}}"
+          }
+        },
+        {
+          "name": "Delete Created Student",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/students/{{createdStudentId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard",
+          "request": { "method": "GET", "url": "{{baseUrl}}/dashboard?date={{testDate}}" }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Get Attendance",
+          "request": { "method": "GET", "url": "{{baseUrl}}/attendance?date={{testDate}}" }
+        },
+        {
+          "name": "Filter Attendance",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/attendance?date={{testDate}}&status=present&search=STU"
+          }
+        },
+        {
+          "name": "Create Or Update Attendance",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{studentId}},\n  \"date\": \"{{testDate}}\",\n  \"status\": \"present\",\n  \"checkIn\": \"07:45:00\",\n  \"checkOut\": \"16:00:00\",\n  \"note\": \"Arrived on time and attended all classes\"\n}"
+            },
+            "url": "{{baseUrl}}/attendance"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schedules",
+      "item": [
+        {
+          "name": "Get Schedules",
+          "request": { "method": "GET", "url": "{{baseUrl}}/schedules?date={{testDate}}" }
+        }
+      ]
+    },
+    {
+      "name": "Notes",
+      "item": [
+        {
+          "name": "Get All Notes",
+          "request": { "method": "GET", "url": "{{baseUrl}}/notes" }
+        },
+        {
+          "name": "Search Notes",
+          "request": { "method": "GET", "url": "{{baseUrl}}/notes?search=meeting" }
+        },
+        {
+          "name": "Create Note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Note created', () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set('noteId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Science project deadline\",\n  \"content\": \"Remind Grade 10A students to submit their projects by Friday.\",\n  \"category\": \"Reminder\",\n  \"color\": \"#D9E8FF\",\n  \"noteDate\": \"{{testDate}}\"\n}"
+            },
+            "url": "{{baseUrl}}/notes"
+          }
+        },
+        {
+          "name": "Update Created Note",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated science project deadline\",\n  \"content\": \"The submission deadline has moved to next Monday.\",\n  \"category\": \"Important\",\n  \"color\": \"#FFF1B8\",\n  \"noteDate\": \"{{testDate}}\"\n}"
+            },
+            "url": "{{baseUrl}}/notes/{{noteId}}"
+          }
+        },
+        {
+          "name": "Delete Created Note",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/notes/{{noteId}}" }
+        }
+      ]
+    }
+  ]
+}
